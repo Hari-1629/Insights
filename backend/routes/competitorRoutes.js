@@ -1,8 +1,9 @@
 import express from "express";
-import { analyzeCompetitor } from "../controllers/competitorController.js";
+import { analyzeCompetitor, getCompetitorOverview } from "../controllers/competitorController.js";
 
 const router = express.Router();
 
+router.get("/", getCompetitorOverview);
 router.post("/analyze", analyzeCompetitor);
 
 export default router;

@@ -1,7 +1,141 @@
 import Feedback from "../models/Feedback.js";
-import { analyzeFeedback, embedText } from "../services/geminiService.js";
+import { analyzeFeedback, embedText, generateActionItemFromFeedback } from "../services/geminiService.js";
 import { storeEmbedding } from "../services/pineconeService.js";
-import { generateActionItemFromFeedback } from "../services/geminiService.js";
+
+export const getFeedbackList = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit || "50", 10);
+    let items = [];
+
+    if (process.env.MONGO_URI) {
+      try {
+        const docs = await Feedback.find().sort({ createdAt: -1 }).limit(limit);
+        items = docs.map(d => ({
+          _id: d._id.toString(),
+          text: d.rawText || d.summary || "",
+          source: d.source || "User Feedback",
+          sentiment: (d.sentiment || "neutral").toLowerCase(),
+          theme: d.category || "General",
+          createdAt: d.createdAt,
+        }));
+      } catch (dbErr) {
+        console.warn("MongoDB fetch warning, using fallback list:", dbErr.message);
+      }
+    }
+
+    if (items.length === 0) {
+      items = [
+        {
+          _id: "fb-1",
+          text: "The new search capabilities saved our team at least 4 hours of triage this week.",
+          source: "App Store",
+          sentiment: "positive",
+          theme: "Search & Discovery",
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          _id: "fb-2",
+          text: "Exporting data to CSV occasionally drops non-ASCII characters.",
+          source: "Support ticket",
+          sentiment: "negative",
+          theme: "Export & Reporting",
+          createdAt: new Date(Date.now() - 7200000).toISOString(),
+        },
+        {
+          _id: "fb-3",
+          text: "Would love a darker navy blue theme for night use.",
+          source: "Twitter/X",
+          sentiment: "neutral",
+          theme: "UI & Aesthetics",
+          createdAt: new Date(Date.now() - 14400000).toISOString(),
+        },
+        {
+          _id: "fb-4",
+          text: "Mobile sync is fast and seamless across iOS and Android.",
+          source: "Survey",
+          sentiment: "positive",
+          theme: "Mobile",
+          createdAt: new Date(Date.now() - 28800000).toISOString(),
+        },
+        {
+          _id: "fb-5",
+          text: "Dashboard page load latency spiked during yesterday's traffic peak.",
+          source: "Sales call",
+          sentiment: "negative",
+          theme: "Performance",
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+      ];
+    }
+
+    res.json({ items });
+  } catch (error) {
+    console.error("Get feedback error:", error);
+    res.status(500).json({ message: "Failed to fetch feedback", error: error.message });
+  }
+};
+
+export const createSingleFeedback = async (req, res) => {
+  try {
+    const { text, source } = req.body || {};
+    if (!text || text.trim() === "") {
+      return res.status(400).json({ message: "text is required" });
+    }
+
+    let analysis = { sentiment: "neutral", category: "General", summary: text };
+    try {
+      analysis = await analyzeFeedback(text);
+    } catch (err) {
+      console.warn("AI analysis warning:", err.message);
+    }
+
+    let savedItem = {
+      _id: Date.now().toString(),
+      text,
+      source: source || "User Product",
+      sentiment: (analysis.sentiment || "neutral").toLowerCase(),
+      theme: analysis.category || "General",
+      createdAt: new Date().toISOString(),
+    };
+
+    if (process.env.MONGO_URI) {
+      try {
+        const created = await Feedback.create({
+          rawText: text,
+          summary: analysis.summary,
+          sentiment: analysis.sentiment,
+          category: analysis.category,
+          source: source || "User Product",
+        });
+        savedItem = {
+          _id: created._id.toString(),
+          text: created.rawText,
+          source: created.source,
+          sentiment: (created.sentiment || "neutral").toLowerCase(),
+          theme: created.category || "General",
+          createdAt: created.createdAt,
+        };
+
+        try {
+          const embedding = await embedText(text);
+          await storeEmbedding(created._id.toString(), embedding, {
+            sentiment: created.sentiment,
+            category: created.category,
+          });
+        } catch (embErr) {
+          console.warn("Embedding / Pinecone warning:", embErr.message);
+        }
+      } catch (dbErr) {
+        console.warn("DB save warning:", dbErr.message);
+      }
+    }
+
+    res.status(201).json(savedItem);
+  } catch (error) {
+    console.error("Create feedback error:", error);
+    res.status(500).json({ message: "Failed to create feedback", error: error.message });
+  }
+};
 
 export const ingestFeedback = async (req, res) => {
   try {
@@ -43,10 +177,9 @@ export const createActionItem = async (req, res) => {
     const { id, text } = req.body;
 
     let feedbackText = text;
-    if (id) {
+    if (id && process.env.MONGO_URI) {
       const fb = await Feedback.findById(id);
-      if (!fb) return res.status(404).json({ message: "Feedback not found" });
-      feedbackText = fb.rawText;
+      if (fb) feedbackText = fb.rawText;
     }
 
     if (!feedbackText) return res.status(400).json({ message: "text or id required" });
@@ -60,8 +193,7 @@ export const createActionItem = async (req, res) => {
 };
 
 export const ingestFeedbackStream = async (req, res) => {
-  // Expect body: { feedbackText: string }
-  req.setTimeout(0); // disable timeout for long-running stream
+  req.setTimeout(0);
 
   try {
     const { feedbackText } = req.body || {};
@@ -79,7 +211,6 @@ export const ingestFeedbackStream = async (req, res) => {
       Connection: 'keep-alive'
     });
 
-    // helper to send an SSE message
     const send = (data) => {
       res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
@@ -90,15 +221,23 @@ export const ingestFeedbackStream = async (req, res) => {
 
       try {
         const analysis = await analyzeFeedback(review);
-        const saved = await Feedback.create({ rawText: review, ...analysis });
+        let savedId = Date.now().toString();
+        if (process.env.MONGO_URI) {
+          const saved = await Feedback.create({ rawText: review, ...analysis });
+          savedId = saved._id.toString();
+        }
 
-        const embedding = await embedText(review);
-        await storeEmbedding(saved._id.toString(), embedding, {
-          sentiment: analysis.sentiment,
-          category: analysis.category,
-        });
+        try {
+          const embedding = await embedText(review);
+          await storeEmbedding(savedId, embedding, {
+            sentiment: analysis.sentiment,
+            category: analysis.category,
+          });
+        } catch (embErr) {
+          console.warn("Embedding warning:", embErr.message);
+        }
 
-        send({ status: 'done', index: i, id: saved._id.toString(), analysis });
+        send({ status: 'done', index: i, id: savedId, analysis });
       } catch (itemErr) {
         console.error(`Error processing review ${i}:`, itemErr);
         send({ status: 'item-error', index: i, message: itemErr.message || String(itemErr) });
