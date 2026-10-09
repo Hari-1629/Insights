@@ -6,6 +6,7 @@ import feedbackRoutes from "./routes/feedbackRoutes.js";
 import searchRoutes from "./routes/searchRoutes.js";
 import competitorRoutes from "./routes/competitorRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import actionItemRoutes from "./routes/actionItemRoutes.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/competitor", competitorRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/action-items", actionItemRoutes);
 
 // Fallback 404 handler for undefined API routes
 app.use((req, res) => {

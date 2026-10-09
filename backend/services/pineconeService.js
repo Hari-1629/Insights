@@ -15,7 +15,7 @@ function getPineconeIndex() {
     });
 
     pineconeIndex = pinecone.Index(
-      process.env.PINECONE_INDEX || "feedback-index"
+      process.env.PINECONE_INDEX || "feedback"
     );
   }
 
@@ -27,29 +27,51 @@ function getPineconeIndex() {
  */
 export async function storeEmbedding(id, vector, metadata) {
   const index = getPineconeIndex();
-  if (!index) return; // Pinecone disabled
+  if (!index) return;
 
-  await retry(() => index.upsert([
-    {
-      id,
-      values: vector,
-      metadata,
-    },
-  ]));
+  await retry(() =>
+    index.upsert([
+      {
+        id,
+        values: vector,
+        metadata,
+      },
+    ])
+  );
 }
+
+export const upsertVector = async (id, vector, metadata) => {
+  return storeEmbedding(id, vector, metadata);
+};
 
 /**
  * Search embedding in Pinecone (if enabled)
  */
 export async function searchEmbedding(vector, topK = 5) {
   const index = getPineconeIndex();
-  if (!index) return []; // Pinecone disabled
+  if (!index) return [];
 
-  const result = await retry(() => index.query({
-    vector,
-    topK,
-    includeMetadata: true,
-  }));
+  const result = await retry(() =>
+    index.query({
+      vector,
+      topK,
+      includeMetadata: true,
+    })
+  );
 
-  return result.matches;
+  return result.matches || [];
+}
+
+export const queryVectors = async (vector, topK = 5) => {
+  return searchEmbedding(vector, topK);
+};
+
+export async function deleteVector(id) {
+  const index = getPineconeIndex();
+  if (!index) return;
+  try {
+    await retry(() => index.deleteOne(id));
+  } catch (err) {
+    console.warn("Pinecone delete error:", err.message);
+  }
 }

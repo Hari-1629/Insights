@@ -1,22 +1,25 @@
-import { Routes, Route } from 'react-router-dom'
-import Sidebar from './components/Sidebar.jsx'
-import Dashboard from './pages/Dashboard.jsx'
-import Feedback from './pages/Feedback.jsx'
-import Search from './pages/Search.jsx'
-import Competitor from './pages/Competitor.jsx'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import LandingPage from './pages/LandingPage';
+import Dashboard from './pages/Dashboard';
+import SavedActionItems from './pages/SavedActionItems';
+import SubmitFeedback from './pages/SubmitFeedback';
+import Login from './pages/Login';
 
-export default function App() {
+function App() {
   return (
-    <div className="shell">
-      <Sidebar />
-      <main className="shell__main">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/feedback" element={<Feedback />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/competitors" element={<Competitor />} />
-        </Routes>
-      </main>
-    </div>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/saved-action-items" element={<SavedActionItems />} />
+        <Route path="/submit-feedback" element={<SubmitFeedback />} />
+      </Routes>
+    </Router>
+  );
 }
+
+export default App;

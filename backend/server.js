@@ -1,6 +1,14 @@
+import dns from "dns";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+
+// Ensure DNS resolution for mongodb+srv on Windows
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch (e) {
+  // Ignore if custom DNS fails
+}
 
 // Load .env located next to this file (works even if cwd is different)
 const __filename = fileURLToPath(import.meta.url);

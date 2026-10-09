@@ -1,18 +1,37 @@
 import express from "express";
 import {
   getFeedbackList,
+  getRecentFeedback,
   createSingleFeedback,
   ingestFeedback,
-  createActionItem,
-  ingestFeedbackStream,
+  searchFeedback,
+  getThemes,
+  getFeedbackStats,
+  getTrendAnalysis,
+  getCommonComplaints,
+  generateActionItem,
+  competitiveAnalysis,
+  deleteFeedback,
+  clearAllFeedback,
+  analyzeProductRequest,
+  bulkProductAnalysis,
 } from "../controllers/feedbackController.js";
 
 const router = express.Router();
 
-router.get("/", getFeedbackList);
-router.post("/", createSingleFeedback);
+router.get("/common-complaints", getCommonComplaints);
+router.get("/trends", getTrendAnalysis);
+router.get("/stats", getFeedbackStats);
+router.get("/themes", getThemes);
+router.get("/analyze-all", bulkProductAnalysis);
+router.post("/analyze-product", analyzeProductRequest);
 router.post("/ingest", ingestFeedback);
-router.post("/action-item", createActionItem);
-router.post("/ingest-stream", ingestFeedbackStream);
+router.post("/search", searchFeedback);
+router.post("/action-item", generateActionItem);
+router.post("/competitive-analysis", competitiveAnalysis);
+router.delete("/clear", clearAllFeedback);
+router.get("/", getRecentFeedback);
+router.post("/", createSingleFeedback);
+router.delete("/:id", deleteFeedback);
 
 export default router;

@@ -14,6 +14,25 @@ function cleanAndParseJSON(text) {
   return JSON.parse(cleaned);
 }
 
+export async function generateText(prompt) {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const result = await retry(() => model.generateContent(prompt));
+  return result.response.text();
+}
+
+export async function generateJSON(prompt) {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    generationConfig: { responseMimeType: "application/json" },
+  });
+  const result = await retry(() => model.generateContent(prompt));
+  return cleanAndParseJSON(result.response.text());
+}
+
+export async function generateEmbedding(text) {
+  return embedText(text);
+}
+
 /* =========================
    1. Analyze Feedback
 ========================= */
@@ -28,7 +47,13 @@ Analyze this feedback and return ONLY valid JSON:
 {
   "summary": "",
   "sentiment": "Positive | Negative | Neutral",
-  "category": "Bug Report | Feature Request | Praise | Other"
+  "category": "Bug Report | Feature Request | Praise | Other",
+  "productName": "Not Specified",
+  "actionItem": {
+    "title": "",
+    "description": "",
+    "user_impact": "High | Medium | Low"
+  }
 }
 
 Feedback:
@@ -120,7 +145,7 @@ Return ONLY valid JSON:
 {
   "title": "",
   "description": "",
-  "user_impact": ""
+  "user_impact": "Medium"
 }
 
 Feedback:
