@@ -136,7 +136,18 @@ const ProductTypeAnalysisModal = ({ isOpen, onClose }) => {
                                                     <div className="flex items-center gap-4">
                                                         {item.image ? (
                                                             <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-md overflow-hidden border border-slate-100 flex-shrink-0">
-                                                                <img src={item.image} alt={item.product} className="w-full h-full object-cover" />
+                                                                <img 
+                                                                    src={item.image} 
+                                                                    alt={item.product} 
+                                                                    className="w-full h-full object-cover" 
+                                                                    onError={(e) => { 
+                                                                        e.currentTarget.style.display = 'none'; 
+                                                                        if (e.currentTarget.parentElement) {
+                                                                            e.currentTarget.parentElement.innerText = item.product?.charAt(0).toUpperCase() || '?';
+                                                                            e.currentTarget.parentElement.className = "w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-600 font-bold shadow-sm flex-shrink-0";
+                                                                        }
+                                                                    }}
+                                                                />
                                                             </div>
                                                         ) : (
                                                             <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-600 font-bold shadow-sm flex-shrink-0">
