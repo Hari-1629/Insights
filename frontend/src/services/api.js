@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/feedback';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = `${BASE_URL}/api/feedback`;
+
+const API = axios.create({
+  baseURL: BASE_URL
+});
 
 export const api = {
     ingestFeedback: async (feedbacks) => {
@@ -32,23 +37,23 @@ export const api = {
     },
     // Action Items
     createActionItem: async (data) => {
-        return axios.post('http://localhost:5000/api/action-items', data);
+        return axios.post(`${BASE_URL}/api/action-items`, data);
     },
     getAllActionItems: async () => {
-        return axios.get('http://localhost:5000/api/action-items');
+        return axios.get(`${BASE_URL}/api/action-items`);
     },
     updateActionItemStatus: async (id, status) => {
-        return axios.patch(`http://localhost:5000/api/action-items/${id}`, { status });
+        return axios.patch(`${BASE_URL}/api/action-items/${id}`, { status });
     },
     updateActionItemTeam: async (id, teamName) => {
-        return axios.patch(`http://localhost:5000/api/action-items/${id}`, { teamName });
+        return axios.patch(`${BASE_URL}/api/action-items/${id}`, { teamName });
     },
     deleteActionItem: async (id) => {
-        return axios.delete(`http://localhost:5000/api/action-items/${id}`);
+        return axios.delete(`${BASE_URL}/api/action-items/${id}`);
     },
     // Submit feedback form
     submitFeedbackForm: async (feedbackType, description, implementedFeature, productName) => {
-        return axios.post('http://localhost:5000/api/action-items/from-submission', {
+        return axios.post(`${BASE_URL}/api/action-items/from-submission`, {
             feedbackType,
             description,
             implementedFeature,
@@ -57,7 +62,7 @@ export const api = {
     },
     // Generate implementation plan
     generateImplementationPlan: async (feedbackType, description) => {
-        return axios.post('http://localhost:5000/api/action-items/generate-implementation-plan', {
+        return axios.post(`${BASE_URL}/api/action-items/generate-implementation-plan`, {
             feedbackType,
             description
         });
